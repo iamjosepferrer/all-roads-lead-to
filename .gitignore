@@ -1,0 +1,5 @@
+# raw inputs are large and re-downloadable (pipeline/download.sh, pipeline/extract.py)
+data_raw/
+__pycache__/
+*.pyc
+.DS_Store
