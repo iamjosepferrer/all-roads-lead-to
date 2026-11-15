@@ -1,0 +1,565 @@
+<title>All Roads Lead To</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gabarito:wght@400..900&display=swap">
+<style>
+/* Layout: masthead, then a 300px control rail beside one map card that fills the screen; stacks on phones. */
+:root {
+  --page: #F5EFE3; --card: #EBE3D4; --raised: #FFFFFF; --rule: #DFD5C3;
+  --ink: #1F2433; --ink2: #4B5060; --muted: #5E6170;
+  /* marks on Oat: soft mid-tones (sky, apricot, sage, violet, rose, ochre), split by lightness so every pair stays apart for colour-blind readers */
+  --c1: #5A9BD2; --c2: #CF9244; --c3: #3B9461; --c4: #6A55AE; --c5: #C9658E; --c6: #7D661C;
+  --blue: var(--c1);
+  --context: #C9C0B2; --context-light: #DCD4C6;
+  --sea: #F5EFE3; --land: #EBE3D4; --land-out: #EFE8DB; --coast: #DFD5C3;
+  --font: "Gabarito", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+}
+:root[data-style="night"] {
+  --page: #161A24; --card: #1E2330; --raised: #2A3040; --rule: #2E3443;
+  --ink: #EDE6D8; --ink2: #C3BCAE; --muted: #A39D90;
+  --c1: #B4D0EE; --c2: #F8CFAE; --c3: #B6E0C8; --c4: #D9C8EE; --c5: #F5C6D2; --c6: #EFDFA2;
+  --context: #6F6B64; --context-light: #343A48;
+  --sea: #161A24; --land: #1E2330; --land-out: #1A1E29; --coast: #2E3443;
+  color-scheme: dark;
+}
+:root[data-style="ink"] {
+  --page: #FBFAF7; --card: #FFFFFF; --raised: #FFFFFF; --rule: #E4E1DA;
+  --ink: #1F2433; --ink2: #4B5060; --muted: #5E6170;
+  --c1: #1F2433; --c2: #1F2433; --c3: #1F2433; --c4: #1F2433; --c5: #1F2433; --c6: #1F2433;
+  --context: #1F2433; --context-light: #DAD6CD;
+  --sea: #FFFFFF; --land: #FFFFFF; --land-out: #FFFFFF; --coast: #C9C4BA;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  background: var(--page); color: var(--ink); font-family: var(--font); font-size: 15px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0; box-sizing: border-box; display: flex; flex-direction: column;
+}
+.masthead { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-block: 14px 10px; }
+.masthead h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+.masthead .by { font-size: 13px; font-weight: 600; color: var(--ink2); white-space: nowrap; }
+.app { flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; padding-bottom: 16px; }
+.rail { background: var(--card); border-radius: 18px; padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.mapcard { background: var(--card); border-radius: 18px; padding: 20px 20px 14px; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.headline { margin: 0; font-size: 26px; font-weight: 800; line-height: 1.15; text-wrap: balance; max-width: 34ch; }
+.dek { margin: 6px 0 12px; font-size: 16px; color: var(--ink2); line-height: 1.4; max-width: 70ch; }
+.mapwrap { position: relative; flex: 1; min-height: 320px; border-radius: 8px; overflow: hidden; background: var(--sea); }
+#map, #overlay { position: absolute; inset: 0; }
+#overlay { pointer-events: none; }
+.foot { display: flex; justify-content: space-between; gap: 12px; padding-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.4; }
+.group { display: flex; flex-direction: column; gap: 8px; }
+.group > label, .glabel { font-size: 13px; font-weight: 600; color: var(--ink2); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button, .btn {
+  font: inherit; font-size: 14px; border: 1px solid var(--rule); background: var(--page); color: var(--ink);
+  border-radius: 6px; padding: 6px 10px; cursor: pointer; transition: border-color 150ms;
+}
+.seg button:hover, .btn:hover { border-color: var(--context); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
+button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+input[type="range"] { width: 100%; accent-color: var(--ink); margin: 0; }
+.slider-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.slider-head label { font-size: 13px; font-weight: 600; color: var(--ink2); }
+input[type="number"] { font: inherit; font-size: 14px; font-weight: 700; width: 64px; box-sizing: border-box; padding: 4px 6px; border-radius: 6px;
+  border: 1px solid var(--rule); background: var(--page); color: var(--ink); text-align: right; }
+input[type="search"] {
+  font: inherit; font-size: 15px; width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 6px;
+  border: 1px solid var(--rule); background: var(--page); color: var(--ink);
+}
+.hint { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.4; }
+details { font-size: 14px; color: var(--ink2); line-height: 1.5; }
+details summary { cursor: pointer; font-weight: 600; color: var(--ink); }
+details p { margin: 8px 0 0; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink2); font-size: 15px; background: var(--sea); }
+@media (max-width: 860px) {
+  html, body { height: auto; }
+  body { display: block; }
+  .app { grid-template-columns: minmax(0, 1fr); flex: none; display: flex; flex-direction: column; }
+  .mapcard, .rail { min-height: auto; }
+  .mapcard { order: 1; padding: 16px 14px 12px; }
+  .rail { order: 2; overflow: visible; }
+  .mapwrap { flex: none; height: 62vh; }
+  .headline { font-size: 21px; }
+  .dek { font-size: 15px; }
+  .foot { flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="masthead">
+  <h1>All roads lead to…</h1>
+  <span class="by">by Josep Ferrer</span>
+</header>
+
+<main class="app">
+  <aside class="rail" aria-label="Map controls">
+    <div class="group" id="single-controls">
+      <label for="city">Destination</label>
+      <input id="city" type="search" list="city-list" placeholder="Type a city" autocomplete="off">
+      <datalist id="city-list"></datalist>
+      <p class="hint">Or click anywhere on the map to send every route there.</p>
+    </div>
+
+    <div class="group">
+      <span class="glabel" id="weight-label">Line width counts</span>
+      <div class="seg" role="group" aria-labelledby="weight-label">
+        <button id="w-people" aria-pressed="true">People</button>
+        <button id="w-roads" aria-pressed="false">Road length</button>
+      </div>
+    </div>
+
+    <div class="group" id="branch-group">
+      <div class="slider-head"><label for="branches">Coloured branches</label><input id="branches-num" type="number" min="0" max="6" step="1" value="6" inputmode="numeric" aria-label="Coloured branches"></div>
+      <input id="branches" type="range" min="0" max="6" step="1" value="6">
+      <p class="hint">Every road joins one cluster: the biggest branches feeding the destination, plus its home roads.</p>
+    </div>
+
+    <div class="group">
+      <span class="glabel" id="style-label">Poster style</span>
+      <div class="seg" role="group" aria-labelledby="style-label">
+        <button id="s-oat" aria-pressed="true">Oat</button>
+        <button id="s-night" aria-pressed="false">Night</button>
+        <button id="s-ink" aria-pressed="false">Ink</button>
+      </div>
+    </div>
+
+    <details>
+      <summary>How this was made</summary>
+      <p>Roads come from OpenStreetMap (via the Overture Maps October 2026 release): motorways, trunk and primary roads plus ferry routes, across the EU, the UK, EFTA and the Western Balkans. Ukraine, Belarus, Moldova, Russia and Turkey are left out.</p>
+      <p>Speeds use the signed limit where it exists, otherwise 120, 100 and 80 km/h by road class and 60 on slip roads. Ferries run at 35 km/h with 20 minutes to board at each end; the Channel Tunnel shuttle takes 65 minutes. No traffic, tolls or turn costs, and one-way rules are ignored.</p>
+      <p>Every road segment carries the people who live closest to it (GHSL 2025 population grid, 1 km). Line width is everyone whose fastest route passes along that road, so it grows towards the destination.</p>
+      <p>Secondary and local roads are not in this version, so short gaps between main roads are bridged with straight links at 40 km/h. Routing runs in your browser.</p>
+      <p>Idea from <a href="https://ntizar.github.io/CuencasTrafico/" target="_blank" rel="noopener">Todos los caminos llevan a…</a> (Spain) and Arterial Mapping's All Roads Lead to Richmond.</p>
+    </details>
+  </aside>
+
+  <section class="mapcard" aria-labelledby="headline">
+    <h2 class="headline" id="headline">Loading the road network</h2>
+    <p class="dek" id="dek">Hours of driving on motorways, trunk and primary roads.</p>
+    <div class="mapwrap" id="mapwrap">
+      <div id="map"></div>
+      <canvas id="overlay"></canvas>
+      <div class="loading" id="loading">Unpacking the road network…</div>
+    </div>
+    <div class="foot">
+      <span>Source: OpenStreetMap contributors via Overture Maps (ODbL), GHSL population 2025.</span>
+      <span id="scope-note">EU, UK, EFTA and Western Balkans</span>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/deck.gl@9.1.14/dist.min.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = (id) => document.getElementById(id);
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const hex = (h) => { h = h.replace("#", ""); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; };
+
+const state = { weight: "people", nBranches: 6, style: "oat", dest: null };
+let G = null, META = null, deckgl = null, viewport = null, result = null;
+
+// data loading
+async function fetchBytes(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Could not load ${url} (${res.status})`);
+  let buf = new Uint8Array(await res.arrayBuffer());
+  if (buf[0] === 0x1f && buf[1] === 0x8b) {
+    const ds = new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream("gzip")));
+    buf = new Uint8Array(await ds.arrayBuffer());
+  }
+  return buf.buffer;
+}
+
+function parseGraph(buf) {
+  const bytes = new Uint8Array(buf);
+  let off = 16;
+  const [ver, NN, E, PV] = new Uint32Array(buf.slice(0, 16));
+  if (ver !== 1) throw new Error("Unknown graph format");
+  // columns are byte-shuffled: all first bytes, then all second bytes, ...
+  const take = (Type, n) => {
+    const s = Type.BYTES_PER_ELEMENT, out = new Uint8Array(n * s);
+    for (let b = 0; b < s; b++) { const base = off + b * n; for (let i = 0; i < n; i++) out[i * s + b] = bytes[base + i]; }
+    off += n * s; return new Type(out.buffer);
+  };
+  const dqx = take(Int32Array, NN), dqy = take(Int32Array, NN);
+  const dU = take(Uint32Array, E), dV = take(Int32Array, E);
+  const TT = take(Uint16Array, E), LL = take(Uint16Array, E), P = take(Uint32Array, E), CL = take(Uint8Array, E);
+  const counts = take(Uint16Array, E), dx = take(Int16Array, PV), dy = take(Int16Array, PV);
+  const qnx = new Int32Array(NN), qny = new Int32Array(NN), nx = new Float32Array(NN), ny = new Float32Array(NN);
+  for (let i = 0, ax = 0, ay = 0; i < NN; i++) { ax += dqx[i]; ay += dqy[i]; qnx[i] = ax; qny[i] = ay; nx[i] = ax * 0.05; ny[i] = ay * 0.05; }
+  const U = new Uint32Array(E), V = new Uint32Array(E), T = new Float32Array(E), L = new Float32Array(E);
+  for (let e = 0, u = 0; e < E; e++) { u += dU[e]; U[e] = u; V[e] = u + dV[e]; T[e] = TT[e] / 10; L[e] = LL[e] / 10; }
+  // decode paths, each starting at its U node
+  const pos = new Float32Array(PV * 2), starts = new Uint32Array(E);
+  let k = 0;
+  for (let e = 0; e < E; e++) {
+    starts[e] = k;
+    let qx = qnx[U[e]], qy = qny[U[e]];
+    for (let j = 0; j < counts[e]; j++, k++) {
+      qx += dx[k]; qy += dy[k];
+      pos[2 * k] = qx * 0.05; pos[2 * k + 1] = qy * 0.05;
+    }
+  }
+  // CSR adjacency
+  const deg = new Uint32Array(NN + 1);
+  for (let e = 0; e < E; e++) { deg[U[e] + 1]++; deg[V[e] + 1]++; }
+  for (let i = 0; i < NN; i++) deg[i + 1] += deg[i];
+  const adjE = new Int32Array(2 * E), fill = deg.slice(0, NN);
+  for (let e = 0; e < E; e++) { adjE[fill[U[e]]++] = e; adjE[fill[V[e]]++] = e; }
+  return { NN, E, PV, nx, ny, U, V, T, L, P, CL, counts, pos, starts, off: deg, adjE };
+}
+
+// routing
+function solve(sources) {
+  const { NN, E, U, V, T, off, adjE } = G;
+  const dist = new Float64Array(NN).fill(Infinity), pe = new Int32Array(NN).fill(-1), src = new Int32Array(NN).fill(-1);
+  const done = new Uint8Array(NN), order = new Int32Array(NN);
+  // binary heap
+  let hk = new Float64Array(1 << 16), hv = new Int32Array(1 << 16), hn = 0;
+  const push = (k, v) => {
+    if (hn === hk.length) { const a = new Float64Array(hn * 2); a.set(hk); hk = a; const b = new Int32Array(hn * 2); b.set(hv); hv = b; }
+    let i = hn++;
+    while (i > 0) { const p = (i - 1) >> 1; if (hk[p] <= k) break; hk[i] = hk[p]; hv[i] = hv[p]; i = p; }
+    hk[i] = k; hv[i] = v;
+  };
+  const pop = () => {
+    const top = hv[0]; const k = hk[--hn], v = hv[hn]; let i = 0;
+    while (true) { let c = 2 * i + 1; if (c >= hn) break; if (c + 1 < hn && hk[c + 1] < hk[c]) c++; if (hk[c] >= k) break; hk[i] = hk[c]; hv[i] = hv[c]; i = c; }
+    hk[i] = k; hv[i] = v; return top;
+  };
+  sources.forEach((s, i) => { if (dist[s] > 0) { dist[s] = 0; src[s] = i; push(0, s); } });
+  let cnt = 0;
+  while (hn > 0) {
+    const n = pop();
+    if (done[n]) continue;
+    done[n] = 1; order[cnt++] = n;
+    const d = dist[n];
+    for (let j = off[n]; j < off[n + 1]; j++) {
+      const e = adjE[j], m = U[e] === n ? V[e] : U[e], nd = d + T[e];
+      if (nd < dist[m]) { dist[m] = nd; pe[m] = e; src[m] = src[n]; push(nd, m); }
+    }
+  }
+  // flows
+  const W = state.weight === "people" ? G.P : G.L;
+  const sub = new Float64Array(NN), flow = new Float32Array(E), child = new Int32Array(E).fill(-1);
+  for (let k = 0; k < cnt; k++) { const n = order[k]; if (pe[n] >= 0) child[pe[n]] = n; }
+  let total = 0;
+  for (let e = 0; e < E; e++) {
+    total += W[e];
+    if (child[e] < 0) { sub[U[e]] += W[e] / 2; sub[V[e]] += W[e] / 2; flow[e] = W[e]; }
+  }
+  for (let k = cnt - 1; k >= 0; k--) {
+    const n = order[k], e = pe[n];
+    if (e < 0) continue;
+    const p = U[e] === n ? V[e] : U[e];
+    const f = sub[n] + W[e]; flow[e] = f; sub[p] += f;
+  }
+  // branches (children of a source)
+  const br = new Int32Array(NN).fill(-1);
+  for (let k = 0; k < cnt; k++) {
+    const n = order[k], e = pe[n]; if (e < 0) continue;
+    const p = U[e] === n ? V[e] : U[e];
+    br[n] = pe[p] < 0 ? n : br[p];
+  }
+  // weighted median and max travel time
+  const bins = new Float64Array(24 * 12 * 6); // 5-minute bins up to 144 h
+  let maxT = 0, farNode = -1;
+  for (let k = 0; k < cnt; k++) { const n = order[k]; if (dist[n] > maxT) { maxT = dist[n]; farNode = n; } }
+  for (let e = 0; e < E; e++) {
+    const t = (dist[U[e]] + dist[V[e]]) / 2; if (!isFinite(t)) continue;
+    bins[Math.min(bins.length - 1, Math.floor(t / 5))] += W[e];
+  }
+  let acc = 0, median = 0, p95 = 0;
+  for (let i = 0; i < bins.length; i++) { acc += bins[i]; if (!median && acc >= total / 2) median = (i + 0.5) * 5; if (acc >= total * 0.95) { p95 = (i + 0.5) * 5; break; } }
+  // per-source totals
+  const srcTotal = new Float64Array(sources.length);
+  for (let e = 0; e < E; e++) {
+    if (child[e] >= 0) { const s = src[child[e]]; if (s >= 0) srcTotal[s] += W[e]; }
+    else { if (src[U[e]] >= 0) srcTotal[src[U[e]]] += W[e] / 2; if (src[V[e]] >= 0) srcTotal[src[V[e]]] += W[e] / 2; }
+  }
+  return { sources, dist, pe, src, flow, child, br, total, median, p95, maxT, farNode, srcTotal, W, order, cnt };
+}
+
+// colours and widths
+function styleColors() {
+  return {
+    cats: [1, 2, 3, 4, 5, 6].map((i) => hex(css(`--c${i}`))),
+    context: hex(css("--context")), contextLight: hex(css("--context-light")),
+    land: hex(css("--land")), landOut: hex(css("--land-out")), coast: hex(css("--coast")),
+    sea: css("--sea"), ink: css("--ink"), ink2: css("--ink2"), muted: css("--muted"), card: css("--card"), page: css("--page"),
+  };
+}
+
+function branchGroups(r, N) {
+  const { NN, U, V } = G, { pe, order, cnt, flow } = r;
+  const parent = new Int32Array(NN).fill(-1), nch = new Int32Array(NN + 1);
+  for (let k = 0; k < cnt; k++) { const n = order[k], e = pe[n]; if (e < 0) continue; const p = U[e] === n ? V[e] : U[e]; parent[n] = p; nch[p + 1]++; }
+  for (let i = 0; i < NN; i++) nch[i + 1] += nch[i];
+  const kids = new Int32Array(nch[NN]), fill = nch.slice(0, NN);
+  for (let k = 0; k < cnt; k++) { const n = order[k]; if (parent[n] >= 0) kids[fill[parent[n]]++] = n; }
+  const sub = (n) => (pe[n] >= 0 ? flow[pe[n]] : Infinity);
+  const fork = (n) => { while (nch[n + 1] - nch[n] === 1) n = kids[nch[n]]; return n; };
+  const childrenOf = (n) => { const f = fork(n), out = []; for (let j = nch[f]; j < nch[f + 1]; j++) out.push(kids[j]); return out; };
+  // keep splitting any cluster bigger than its fair share, so the N coloured ones come out balanced
+  const share = (0.9 * r.total) / N;
+  let S = childrenOf(r.sources[0]);
+  for (let guard = 0; guard < 600; guard++) {
+    S.sort((a, b) => sub(b) - sub(a));
+    const i = S.findIndex((n) => sub(n) > share && childrenOf(n).length >= 2);
+    if (i < 0) break;
+    const [n] = S.splice(i, 1);
+    S.push(...childrenOf(n));
+  }
+  S.sort((a, b) => sub(b) - sub(a));
+  // N - 1 far clusters plus one home cluster: every road ends up in exactly one of them
+  const nFar = N >= 2 ? N - 1 : 1, home = N >= 2 ? N - 1 : 0;
+  const grp = new Int8Array(NN).fill(-1);
+  S.slice(0, nFar).forEach((n, i) => (grp[n] = i));
+  for (let k = 0; k < cnt; k++) { const n = order[k]; if (grp[n] < 0 && parent[n] >= 0) grp[n] = grp[parent[n]]; }
+  // shared trunks take the colour of their biggest coloured tributary, like a river
+  for (let k = cnt - 1; k >= 0; k--) {
+    const n = order[k]; if (grp[n] >= 0 || pe[n] < 0) continue;
+    let best = -1, bf = -1;
+    for (let j = nch[n]; j < nch[n + 1]; j++) { const c = kids[j]; if (grp[c] >= 0 && sub(c) > bf) { bf = sub(c); best = c; } }
+    if (best >= 0) grp[n] = grp[best];
+  }
+  // the destination is home; side roads take the colour of the road they join,
+  // except near the destination, where they form the home cluster
+  // home = roads that reach the city on their own: they join within 30 minutes (ring roads, city edge)
+  const R = 30;
+  const joined = grp.slice();
+  for (let k = 0; k < cnt; k++) {
+    const n = order[k];
+    if (pe[n] < 0) { grp[n] = home; continue; }
+    if (grp[n] >= 0) continue;
+    const p = parent[n];
+    grp[n] = joined[p] >= 0 && r.dist[p] < R ? home : grp[p];
+  }
+  return grp;
+}
+
+function buildAttributes(r) {
+  const C = styleColors();
+  const { E, PV, starts, counts } = G;
+  const widths = new Float32Array(PV), colors = new Uint8Array(PV * 4);
+  let fmax = 0;
+  for (let e = 0; e < E; e++) if (r.child[e] >= 0 && r.flow[e] > fmax) fmax = r.flow[e];
+  const isInk = state.style === "ink";
+  // clusters: split the biggest branch at its next fork until there are N of them
+  r.grp = state.nBranches > 0 && !isInk ? branchGroups(r, state.nBranches) : null;
+  for (let e = 0; e < E; e++) {
+    const c = r.child[e];
+    let w, rgb, a = 255;
+    if (c >= 0) {
+      const f = r.flow[e] / fmax;
+      w = 0.45 + 12 * Math.sqrt(f);
+      if (state.nBranches === 0 || isInk) rgb = C.cats[0];
+      else { const g = r.grp ? r.grp[c] : -1; rgb = g >= 0 ? C.cats[g] : C.context; }
+    } else {
+      w = 0.45; rgb = C.contextLight;
+    }
+    const s = starts[e], n = counts[e];
+    widths.fill(w, s, s + n);
+    for (let j = s; j < s + n; j++) { const o = j * 4; colors[o] = rgb[0]; colors[o + 1] = rgb[1]; colors[o + 2] = rgb[2]; colors[o + 3] = a; }
+  }
+  r.fmax = fmax;
+  return { widths, colors };
+}
+
+// formatting
+const fmtH = (min) => { const h = Math.floor(min / 60), m = Math.round((min - h * 60) / 5) * 5, s = "\u00a0"; return m === 60 ? `${h + 1}${s}h` : m ? `${h}${s}h${s}${String(m).padStart(2, "0")}` : `${h}${s}h`; };
+const slug = (s) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+// scene
+let landLayers = [];
+function makeLand() {
+  const C = styleColors();
+  const data = [];
+  // only the countries in the network; Cyprus has no road link to it, so it is left out too
+  for (const c of META.land) if (c.in_scope && c.cc !== "CYP") for (const ring of c.rings) data.push({ ring, inScope: true });
+  return [
+    new deck.SolidPolygonLayer({ id: "land", data, coordinateSystem: deck.COORDINATE_SYSTEM.CARTESIAN,
+      getPolygon: (d) => d.ring, getFillColor: (d) => d.inScope ? C.land : C.landOut, updateTriggers: { getFillColor: state.style } }),
+    new deck.PathLayer({ id: "coast", data, coordinateSystem: deck.COORDINATE_SYSTEM.CARTESIAN,
+      getPath: (d) => d.ring, getColor: C.coast, widthUnits: "pixels", getWidth: 0.8, updateTriggers: { getColor: state.style } }),
+  ];
+}
+
+function render() {
+  if (!state.dest) return;
+  const sources = [state.dest];
+  result = solve(sources.map((s) => s.n));
+  result.meta = sources;
+  const { widths, colors } = buildAttributes(result);
+  const roads = new deck.PathLayer({
+    id: "roads", coordinateSystem: deck.COORDINATE_SYSTEM.CARTESIAN,
+    data: { length: G.E, startIndices: G.starts, attributes: {
+      getPath: { value: G.pos, size: 2 }, getWidth: { value: widths, size: 1 }, getColor: { value: colors, size: 4, normalized: true } } },
+    _pathType: "open", widthUnits: "pixels", widthMinPixels: 0.35, capRounded: true, jointRounded: false, pickable: false,
+  });
+  landLayers = makeLand();
+  deckgl.setProps({ layers: [...landLayers, roads] });
+  $("mapwrap").style.background = css("--sea");
+  writeText();
+  syncHash();
+}
+
+function writeText() {
+  const r = result, people = state.weight === "people";
+  const name = state.dest.name, nb = state.style === "ink" ? 0 : state.nBranches;
+  $("headline").textContent = people
+    ? `Half the people on this map can drive to ${name} in under ${fmtH(r.median)}`
+    : `Half of the main road network is within ${fmtH(r.median)} of ${name}`;
+  const branchTxt = nb <= 1 ? "" : `. Colours split the roads into ${nb} clusters: the ${nb - 1} biggest branches and the roads around ${name}`;
+  $("dek").textContent = `Hours of driving on motorways, trunk and primary roads and ferries. Line width is the ${people ? "people" : "road length"} whose fastest route to ${name} runs along each road${branchTxt}. ${people ? "95% of everyone" : "95% of the network"} is within ${fmtH(r.p95)}.`;
+}
+
+// overlay: city labels
+function drawOverlay(ctx, vp, scale = 1, forExport = false) {
+  if (!result || !vp) return;
+  const C = styleColors();
+  const W = ctx.canvas.width / scale, H = ctx.canvas.height / scale;
+  ctx.save(); ctx.scale(scale, scale);
+  const placed = [];
+  const label = (x, y, text, weight = 600, size = 13) => {
+    ctx.font = `${weight} ${size}px Gabarito, system-ui, sans-serif`;
+    const w = ctx.measureText(text).width, bw = w + 2, bh = size + 4, by = y - size / 2 - 2;
+    for (const bx of [x + 7, x - 9 - w]) {
+      if (bx < 2 || bx + bw > W - 4 || by < 2 || by + bh > H - 2) continue;
+      if (placed.some((p) => bx < p[0] + p[2] && bx + bw > p[0] && by < p[1] + p[3] && by + bh > p[1])) continue;
+      placed.push([bx, by, bw, bh]);
+      ctx.lineJoin = "round"; ctx.lineWidth = 3.5; ctx.strokeStyle = C.page; ctx.strokeText(text, bx + 1, y + size / 2 - 2);
+      ctx.fillStyle = C.ink; ctx.fillText(text, bx + 1, y + size / 2 - 2);
+      return true;
+    }
+    return false;
+  };
+  const dot = (x, y, r = 3.5) => { ctx.beginPath(); ctx.arc(x, y, r + 2, 0, 7); ctx.fillStyle = C.card; ctx.fill(); ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fillStyle = C.ink; ctx.fill(); };
+  const sources = result.meta;
+  const order = [...sources.keys()].sort((a, b) => result.srcTotal[b] - result.srcTotal[a]);
+  for (const i of order) {
+    const s = sources[i]; const [x, y] = vp.project([G.nx[s.n], G.ny[s.n]]);
+    if (x < -20 || y < -20 || x > W + 20 || y > H + 20) continue;
+    dot(x, y, sources.length > 1 ? 2.5 : 4);
+    label(x, y, s.name, sources.length > 1 ? 600 : 800, sources.length > 1 ? 12 : 15);
+  }
+  ctx.restore();
+}
+
+function refreshOverlay() {
+  const cv = $("overlay"), wrap = $("mapwrap"), dpr = window.devicePixelRatio || 1;
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.width = w + "px"; cv.style.height = h + "px"; }
+  const ctx = cv.getContext("2d"); ctx.clearRect(0, 0, cv.width, cv.height);
+  drawOverlay(ctx, viewport, dpr);
+}
+
+// interaction
+function nearestNode(x, y) {
+  let best = -1, bd = Infinity; const { nx, ny, NN } = G;
+  for (let i = 0; i < NN; i++) { const dx = nx[i] - x, dy = ny[i] - y, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = i; } }
+  return best;
+}
+function nearestCity(x, y, maxKm = 15) {
+  let best = null, bd = maxKm * maxKm;
+  for (const c of META.cities) { const d = (c.x - x) ** 2 + (c.y - y) ** 2; if (d < bd) { bd = d; best = c; } }
+  return best;
+}
+function onMapClick(info) {
+  if (!info.coordinate || !G) return;
+  const [x, y] = info.coordinate;
+  const city = nearestCity(x, y);
+  state.dest = city ? city : { name: "this point", n: nearestNode(x, y), x, y };
+  $("city").value = city ? city.label : "";
+  render();
+}
+
+function pressed(groupIds, active) { groupIds.forEach((id) => $(id).setAttribute("aria-pressed", String(id === active))); }
+function setStyle(s) {
+  state.style = s; pressed(["s-oat", "s-night", "s-ink"], "s-" + s);
+  if (s === "oat") document.documentElement.removeAttribute("data-style"); else document.documentElement.setAttribute("data-style", s);
+  render();
+}
+function syncHash() {
+  let h = "";
+  if (state.dest && state.dest.slug) h = state.dest.slug;
+  try { history.replaceState(null, "", h ? "#" + h : location.pathname + location.search); } catch (e) { /* hash sync is a convenience */ }
+}
+function fromHash() {
+  const h = location.hash.replace("#", "");
+  if (!h) return false;
+  const c = META.cities.find((c) => c.slug === h);
+  if (c) { state.dest = c; return true; }
+  return false;
+}
+
+function bind() {
+  $("w-people").onclick = () => { state.weight = "people"; pressed(["w-people", "w-roads"], "w-people"); render(); };
+  $("w-roads").onclick = () => { state.weight = "roads"; pressed(["w-people", "w-roads"], "w-roads"); render(); };
+  let pending = null;
+  const later = () => { clearTimeout(pending); pending = setTimeout(render, 140); };
+  // each slider has a number box: drag or type, both stay in sync
+  const link = (rangeId, numId, apply) => {
+    const range = $(rangeId), num = $(numId), lo = +range.min, hi = +range.max;
+    range.addEventListener("input", () => { num.value = range.value; apply(+range.value); later(); });
+    num.addEventListener("input", () => { const v = Math.round(+num.value); if (num.value === "" || !isFinite(v) || v < lo || v > hi) return; range.value = v; apply(v); later(); });
+    num.addEventListener("change", () => { const v = Math.min(hi, Math.max(lo, Math.round(+num.value) || lo)); num.value = v; range.value = v; apply(v); later(); });
+  };
+  link("branches", "branches-num", (v) => { state.nBranches = v; });
+  ["oat", "night", "ink"].forEach((s) => ($("s-" + s).onclick = () => setStyle(s)));
+  $("city").addEventListener("change", (e) => {
+    const v = e.target.value.trim().toLowerCase();
+    const c = META.cities.find((c) => c.label.toLowerCase() === v) || META.cities.find((c) => c.name.toLowerCase() === v);
+    if (c) { state.dest = c; render(); }
+  });
+  window.addEventListener("hashchange", () => { if (fromHash()) { $("city").value = state.dest.label; render(); } });
+}
+
+// boot
+async function boot() {
+  try {
+    const [buf, meta] = await Promise.all([fetchBytes("data/graph.bin.gz"), fetch("data/meta.json").then((r) => r.json())]);
+    META = meta; G = parseGraph(buf);
+  } catch (err) {
+    $("loading").textContent = "The road network did not load. Reload the page to try again.";
+    console.error(err); return;
+  }
+  const seen = new Set();
+  META.cities.forEach((c) => {
+    c.slug = slug(c.name); if (seen.has(c.slug)) c.slug += "-" + c.cc.toLowerCase(); seen.add(c.slug);
+    c.label = `${c.name}, ${c.cc}`;
+  });
+  $("city-list").innerHTML = META.cities.slice(0, 900).map((c) => `<option value="${c.label}"></option>`).join("");
+  try { await document.fonts.load('800 15px "Gabarito"'); } catch (e) { /* fallback fonts are fine */ }
+
+  if (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches) { state.style = "night"; document.documentElement.setAttribute("data-style", "night"); pressed(["s-oat", "s-night", "s-ink"], "s-night"); }
+  if (!fromHash()) state.dest = META.cities.find((c) => c.name === "Brussels") || META.cities[0];
+
+  // fit view to the network
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (let i = 0; i < G.NN; i++) { const x = G.nx[i], y = G.ny[i]; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  const wrap = $("mapwrap"), w = wrap.clientWidth, h = wrap.clientHeight;
+  const zoom = Math.log2(Math.min(w / (x1 - x0), h / (y1 - y0)) * 0.95);
+
+  deckgl = new deck.Deck({
+    parent: $("map"),
+    views: new deck.OrthographicView({ id: "map", flipY: false, controller: true }),
+    initialViewState: { target: [(x0 + x1) / 2, (y0 + y1) / 2, 0], zoom, minZoom: zoom - 0.5, maxZoom: zoom + 7 },
+    controller: { doubleClickZoom: true, dragRotate: false },
+    layers: [], onClick: onMapClick,
+    getCursor: ({ isDragging }) => (isDragging ? "grabbing" : "crosshair"),
+    onAfterRender: () => {
+      viewport = deckgl.getViewports()[0];
+      refreshOverlay();
+    },
+  });
+  bind();
+  if (state.dest) $("city").value = state.dest.label || "";
+  render();
+  $("loading").hidden = true;
+}
+boot();
+})();
+</script>

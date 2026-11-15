@@ -1,8 +1,24 @@
 # All roads lead to…
 
-An interactive map of the fastest driving routes to any city across the EU, the UK, EFTA and the Western Balkans. Pick a destination and every main road in the network routes to it, with line width showing how many people use each road on their way there.
+An interactive map of the fastest driving routes to any city across the EU, the UK, EFTA and the Western Balkans. Pick a destination and every main road in the network routes to it: line width shows how many people use each road on their way there, and colours split the network into clusters.
 
-This first part is the data pipeline: it turns OpenStreetMap roads and a population grid into one compact routing graph that a browser can load. The map itself comes next.
+![Routes to Madrid](docs/madrid.png)
+
+## What you can do
+
+- **Pick a destination.** Type a city or click anywhere on the map. Every junction routes there along its fastest path.
+- **Clusters.** Up to 6 colours show the big road systems feeding the destination, plus the city's home roads. Drag the slider or type the number.
+- **People or road length.** Line width counts either the people whose route passes along each road, or the kilometres of road that drain into it.
+- **Three poster styles:** Oat, Night and Ink.
+
+## Run it
+
+The page loads its data with `fetch`, so open it through a local web server rather than as a file:
+
+```bash
+python -m http.server 8000
+# then open http://localhost:8000
+```
 
 ## How it works
 
@@ -14,20 +30,9 @@ This first part is the data pipeline: it turns OpenStreetMap roads and a populat
 - Bridges short gaps left by the missing minor roads with straight links at 40 km/h, links ferry terminals to the nearest road, drops cruise-like ferry loops, and keeps the largest connected network.
 - Removes short dead ends and merges chains of road pieces into single links (661k junctions, 1.0M links).
 - Gives every road the people who live closest to it, from the GHSL 2025 population grid (538 million people in total).
-- Packs everything into `data/graph.bin.gz` (6.5 MB): node coordinates in the European LAEA projection, link times, lengths and people, and simplified geometry, stored as byte-shuffled columns so gzip compresses them well. `data/meta.json` holds the cities and country outlines.
+- Packs everything into `data/graph.bin.gz` (6.5 MB), stored as byte-shuffled columns so gzip compresses them well.
 
-**3. Check** (`pipeline/check.py`). Routes from Brussels with and without ferries:
-
-```
-from Brussels     ferries  roads only
-London               4.1 h       4.1 h
-Warsaw              11.0 h      11.0 h
-Lisbon              17.4 h      17.4 h
-Stockholm           14.1 h      14.2 h
-Helsinki            23.5 h      33.3 h
-Dublin              11.5 h     no road
-people cut off without ferries: 3.6%
-```
+**3. Page** (`index.html`). Decodes the graph and runs Dijkstra in the browser (about 0.25 s for one destination). It then adds up people along the route tree to get line widths, and builds the clusters: it keeps splitting the biggest branch at its next fork until there are enough balanced branches, colours each trunk like a river by its biggest tributary, and gives side roads the colour of the road they join. Drawing uses [deck.gl](https://deck.gl).
 
 ## Rebuild the data
 
@@ -44,6 +49,7 @@ python pipeline/check.py       # drive times from Brussels as a sanity check
 ## Repository layout
 
 ```
+index.html            the map (HTML, CSS and JS in one file)
 data/
   graph.bin.gz        routing graph (built)
   meta.json           cities and country outlines (built)
@@ -53,7 +59,14 @@ pipeline/
   build.py            graph builder
   check.py            sanity check
   requirements.txt
+docs/                 screenshots
 ```
+
+## Limits
+
+- Only motorways, trunk and primary roads. Secondary and local roads are left out, so short gaps between main roads are bridged with straight links that can show up when you zoom in close.
+- No traffic, tolls, turn costs or one-way rules.
+- Ukraine, Belarus, Moldova, Russia and Turkey are not included, and Cyprus has no link to the network.
 
 ## Data and credits
 
