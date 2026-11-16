@@ -22,6 +22,7 @@
   --sea: #161A24; --land: #1E2330; --land-out: #1A1E29; --coast: #2E3443;
   color-scheme: dark;
 }
+:root[data-style="ink"] .btn.primary { color: #FFFFFF; }
 :root[data-style="ink"] {
   --page: #FBFAF7; --card: #FFFFFF; --raised: #FFFFFF; --rule: #E4E1DA;
   --ink: #1F2433; --ink2: #4B5060; --muted: #5E6170;
@@ -57,7 +58,16 @@ body {
 }
 .seg button:hover, .btn:hover { border-color: var(--context); }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.btn.primary { background: var(--blue); color: var(--ink); border-color: var(--blue); font-weight: 700; }
+:root[data-style="night"] .btn.primary { color: #161A24; }
 button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips:empty::before { content: "No cities yet."; font-size: 13px; color: var(--muted); }
+.chip { font: inherit; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 9px; border-radius: 6px;
+  border: 1px solid var(--rule); background: var(--page); color: var(--ink); cursor: pointer; }
+.chip:hover { border-color: var(--context); }
+.chip span[aria-hidden] { font-size: 15px; line-height: 1; color: var(--muted); }
+#clear-picks { align-self: flex-start; }
 input[type="range"] { width: 100%; accent-color: var(--ink); margin: 0; }
 .slider-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .slider-head label { font-size: 13px; font-weight: 600; color: var(--ink2); }
@@ -72,6 +82,11 @@ details { font-size: 14px; color: var(--ink2); line-height: 1.5; }
 details summary { cursor: pointer; font-weight: 600; color: var(--ink); }
 details p { margin: 8px 0 0; }
 .loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink2); font-size: 15px; background: var(--sea); }
+.modal { position: fixed; inset: 0; background: rgba(20, 22, 30, 0.6); display: grid; place-items: center; z-index: 20;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.modal .box { background: var(--card); border-radius: 18px; padding: 16px; max-width: min(1100px, 100%); max-height: 100%; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
+.modal img { max-width: 100%; max-height: calc(100vh - 140px); width: auto; height: auto; border-radius: 8px; align-self: center; }
+.modal .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; color: var(--ink2); }
 @media (max-width: 860px) {
   html, body { height: auto; }
   body { display: block; }
@@ -94,11 +109,39 @@ details p { margin: 8px 0 0; }
 
 <main class="app">
   <aside class="rail" aria-label="Map controls">
+    <div class="group">
+      <span class="glabel" id="mode-label">Map</span>
+      <div class="seg" role="group" aria-labelledby="mode-label">
+        <button id="mode-single" aria-pressed="true">One destination</button>
+        <button id="mode-compete" aria-pressed="false">Road basins</button>
+      </div>
+    </div>
+
     <div class="group" id="single-controls">
       <label for="city">Destination</label>
       <input id="city" type="search" list="city-list" placeholder="Type a city" autocomplete="off">
       <datalist id="city-list"></datalist>
       <p class="hint">Or click anywhere on the map to send every route there.</p>
+    </div>
+
+    <div class="group" id="compete-controls" hidden>
+      <span class="glabel" id="preset-label">Cities</span>
+      <div class="seg" role="group" aria-labelledby="preset-label">
+        <button id="p-largest" aria-pressed="true">Largest</button>
+        <button id="p-capitals" aria-pressed="false">Capitals</button>
+        <button id="p-mine" aria-pressed="false">My picks</button>
+      </div>
+      <div class="group" id="count-group">
+        <div class="slider-head"><label for="count">Number of cities</label><input id="count-num" type="number" min="2" max="150" step="1" value="50" inputmode="numeric" aria-label="Number of cities"></div>
+        <input id="count" type="range" min="2" max="150" step="1" value="50">
+      </div>
+      <div class="group" id="picks-group" hidden>
+        <label for="pick">Add a city</label>
+        <input id="pick" type="search" list="city-list" placeholder="Type a city" autocomplete="off">
+        <div class="chips" id="picks" aria-live="polite"></div>
+        <button class="btn" id="clear-picks">Clear all</button>
+      </div>
+      <p class="hint">Every junction drains to the city it reaches fastest. Click the map to add or remove one of your picks.</p>
     </div>
 
     <div class="group">
@@ -116,6 +159,14 @@ details p { margin: 8px 0 0; }
     </div>
 
     <div class="group">
+      <span class="glabel" id="ferry-label">Ferries</span>
+      <div class="seg" role="group" aria-labelledby="ferry-label">
+        <button id="f-on" aria-pressed="true">Allowed</button>
+        <button id="f-off" aria-pressed="false">Roads only</button>
+      </div>
+    </div>
+
+    <div class="group">
       <span class="glabel" id="style-label">Poster style</span>
       <div class="seg" role="group" aria-labelledby="style-label">
         <button id="s-oat" aria-pressed="true">Oat</button>
@@ -124,10 +175,12 @@ details p { margin: 8px 0 0; }
       </div>
     </div>
 
+    <button class="btn primary" id="export">Create image</button>
+
     <details>
       <summary>How this was made</summary>
       <p>Roads come from OpenStreetMap (via the Overture Maps October 2026 release): motorways, trunk and primary roads plus ferry routes, across the EU, the UK, EFTA and the Western Balkans. Ukraine, Belarus, Moldova, Russia and Turkey are left out.</p>
-      <p>Speeds use the signed limit where it exists, otherwise 120, 100 and 80 km/h by road class and 60 on slip roads. Ferries run at 35 km/h with 20 minutes to board at each end; the Channel Tunnel shuttle takes 65 minutes. No traffic, tolls or turn costs, and one-way rules are ignored.</p>
+      <p>Speeds use the signed limit where it exists, otherwise 120, 100 and 80 km/h by road class and 60 on slip roads. Ferries run at 35 km/h with 20 minutes to board at each end; the Channel Tunnel shuttle takes 65 minutes and stays on in Roads only, since it is a train. No traffic, tolls or turn costs, and one-way rules are ignored.</p>
       <p>Every road segment carries the people who live closest to it (GHSL 2025 population grid, 1 km). Line width is everyone whose fastest route passes along that road, so it grows towards the destination.</p>
       <p>Secondary and local roads are not in this version, so short gaps between main roads are bridged with straight links at 40 km/h. Routing runs in your browser.</p>
       <p>Idea from <a href="https://ntizar.github.io/CuencasTrafico/" target="_blank" rel="noopener">Todos los caminos llevan a…</a> (Spain) and Arterial Mapping's All Roads Lead to Richmond.</p>
@@ -149,6 +202,13 @@ details p { margin: 8px 0 0; }
   </section>
 </main>
 
+<div class="modal" id="modal" hidden>
+  <div class="box" role="dialog" aria-label="Image ready">
+    <img id="export-img" alt="Poster of the current map">
+    <div class="row"><span>Right-click or long-press the image to save it.</span><button class="btn" id="close-modal">Close</button></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/deck.gl@9.1.14/dist.min.js"></script>
 <script>
 (() => {
@@ -157,7 +217,7 @@ const $ = (id) => document.getElementById(id);
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const hex = (h) => { h = h.replace("#", ""); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; };
 
-const state = { weight: "people", nBranches: 6, style: "oat", dest: null };
+const state = { mode: "single", weight: "people", nBranches: 6, ferries: true, style: "oat", dest: null, preset: "largest", count: 50, picks: [], };
 let G = null, META = null, deckgl = null, viewport = null, result = null;
 
 // data loading
@@ -213,7 +273,7 @@ function parseGraph(buf) {
 
 // routing
 function solve(sources) {
-  const { NN, E, U, V, T, off, adjE } = G;
+  const { NN, E, U, V, T, CL, off, adjE } = G, noFerry = !state.ferries;
   const dist = new Float64Array(NN).fill(Infinity), pe = new Int32Array(NN).fill(-1), src = new Int32Array(NN).fill(-1);
   const done = new Uint8Array(NN), order = new Int32Array(NN);
   // binary heap
@@ -237,7 +297,9 @@ function solve(sources) {
     done[n] = 1; order[cnt++] = n;
     const d = dist[n];
     for (let j = off[n]; j < off[n + 1]; j++) {
-      const e = adjE[j], m = U[e] === n ? V[e] : U[e], nd = d + T[e];
+      const e = adjE[j];
+      if (noFerry && CL[e] === 0) continue;
+      const m = U[e] === n ? V[e] : U[e], nd = d + T[e];
       if (nd < dist[m]) { dist[m] = nd; pe[m] = e; src[m] = src[n]; push(nd, m); }
     }
   }
@@ -271,6 +333,8 @@ function solve(sources) {
     const t = (dist[U[e]] + dist[V[e]]) / 2; if (!isFinite(t)) continue;
     bins[Math.min(bins.length - 1, Math.floor(t / 5))] += W[e];
   }
+  let unreach = 0;
+  for (let e = 0; e < E; e++) if (!isFinite(dist[U[e]]) && !isFinite(dist[V[e]])) unreach += W[e];
   let acc = 0, median = 0, p95 = 0;
   for (let i = 0; i < bins.length; i++) { acc += bins[i]; if (!median && acc >= total / 2) median = (i + 0.5) * 5; if (acc >= total * 0.95) { p95 = (i + 0.5) * 5; break; } }
   // per-source totals
@@ -279,7 +343,7 @@ function solve(sources) {
     if (child[e] >= 0) { const s = src[child[e]]; if (s >= 0) srcTotal[s] += W[e]; }
     else { if (src[U[e]] >= 0) srcTotal[src[U[e]]] += W[e] / 2; if (src[V[e]] >= 0) srcTotal[src[V[e]]] += W[e] / 2; }
   }
-  return { sources, dist, pe, src, flow, child, br, total, median, p95, maxT, farNode, srcTotal, W, order, cnt };
+  return { sources, dist, pe, src, flow, child, br, total, unreach, median, p95, maxT, farNode, srcTotal, W, order, cnt };
 }
 
 // colours and widths
@@ -340,6 +404,26 @@ function branchGroups(r, N) {
   return grp;
 }
 
+function colourBasins(r) {
+  // greedy 4-colouring of basins that touch, largest first
+  const nS = r.sources.length, nb = Array.from({ length: nS }, () => new Set());
+  const { U, V, E } = G;
+  for (let e = 0; e < E; e++) {
+    if (r.child[e] >= 0) continue;
+    const a = r.src[U[e]], b = r.src[V[e]];
+    if (a >= 0 && b >= 0 && a !== b) { nb[a].add(b); nb[b].add(a); }
+  }
+  const order = [...Array(nS).keys()].sort((a, b) => r.srcTotal[b] - r.srcTotal[a]);
+  const col = new Int32Array(nS).fill(-1);
+  if (nS <= 6) { order.forEach((s, i) => (col[s] = i)); return col; }  // few cities: one colour each
+  for (const s of order) {
+    const used = new Set([...nb[s]].map((t) => col[t]));
+    let c = 0; while (used.has(c) && c < 5) c++;
+    col[s] = c;
+  }
+  return col;
+}
+
 function buildAttributes(r) {
   const C = styleColors();
   const { E, PV, starts, counts } = G;
@@ -348,18 +432,26 @@ function buildAttributes(r) {
   for (let e = 0; e < E; e++) if (r.child[e] >= 0 && r.flow[e] > fmax) fmax = r.flow[e];
   const isInk = state.style === "ink";
   // clusters: split the biggest branch at its next fork until there are N of them
-  r.grp = state.nBranches > 0 && !isInk ? branchGroups(r, state.nBranches) : null;
+  r.grp = state.mode === "single" && state.nBranches > 0 && !isInk ? branchGroups(r, state.nBranches) : null;
+  const basinCol = state.mode === "compete" ? colourBasins(r) : null;
+  r.basinCol = basinCol;
   for (let e = 0; e < E; e++) {
     const c = r.child[e];
     let w, rgb, a = 255;
     if (c >= 0) {
       const f = r.flow[e] / fmax;
       w = 0.45 + 12 * Math.sqrt(f);
-      if (state.nBranches === 0 || isInk) rgb = C.cats[0];
+      if (basinCol) rgb = C.cats[basinCol[r.src[c]]];
+      else if (state.mode === "single" && state.nBranches === 0) rgb = C.cats[0];
+      else if (isInk) rgb = C.cats[0];
       else { const g = r.grp ? r.grp[c] : -1; rgb = g >= 0 ? C.cats[g] : C.context; }
     } else {
-      w = 0.45; rgb = C.contextLight;
+      const lost = !isFinite(r.dist[G.U[e]]) && !isFinite(r.dist[G.V[e]]);
+      w = lost ? 0.35 : 0.45;
+      rgb = !lost && basinCol && r.src[G.U[e]] >= 0 ? C.cats[basinCol[r.src[G.U[e]]]] : C.contextLight;
+      a = lost ? 140 : basinCol ? 120 : 255;
     }
+    if (!state.ferries && G.CL[e] === 0) { w = 0; a = 0; }  // roads only: hide ferry routes
     const s = starts[e], n = counts[e];
     widths.fill(w, s, s + n);
     for (let j = s; j < s + n; j++) { const o = j * 4; colors[o] = rgb[0]; colors[o + 1] = rgb[1]; colors[o + 2] = rgb[2]; colors[o + 3] = a; }
@@ -370,6 +462,8 @@ function buildAttributes(r) {
 
 // formatting
 const fmtH = (min) => { const h = Math.floor(min / 60), m = Math.round((min - h * 60) / 5) * 5, s = "\u00a0"; return m === 60 ? `${h + 1}${s}h` : m ? `${h}${s}h${s}${String(m).padStart(2, "0")}` : `${h}${s}h`; };
+const fmtPeople = (v) => v >= 1e6 ? `${(v / 1e6).toFixed(v >= 1e7 ? 0 : 1)} million people` : `${Math.round(v / 1000)} thousand people`;
+const fmtKm = (v) => `${Math.round(v).toLocaleString("en-GB")} km of road`;
 const slug = (s) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 // scene
@@ -388,8 +482,15 @@ function makeLand() {
 }
 
 function render() {
-  if (!state.dest) return;
-  const sources = [state.dest];
+  const sources = currentSources();
+  if (!sources.length) {
+    result = null;
+    deckgl.setProps({ layers: makeLand() });
+    $("headline").textContent = "Pick at least one city to draw its road basin";
+    $("dek").textContent = "Type a city name or click the map to add it.";
+    refreshOverlay();
+    return;
+  }
   result = solve(sources.map((s) => s.n));
   result.meta = sources;
   const { widths, colors } = buildAttributes(result);
@@ -406,14 +507,38 @@ function render() {
   syncHash();
 }
 
+function currentSources() {
+  if (state.mode === "single") return state.dest ? [state.dest] : [];
+  if (state.preset === "capitals") return META.cities.filter((c) => c.cap && !["VAT", "MCO", "SMR", "LIE", "AND"].includes(c.cc));
+  if (state.preset === "largest") return META.cities.slice(0, state.count);
+  return state.picks;
+}
+
 function writeText() {
   const r = result, people = state.weight === "people";
-  const name = state.dest.name, nb = state.style === "ink" ? 0 : state.nBranches;
-  $("headline").textContent = people
-    ? `Half the people on this map can drive to ${name} in under ${fmtH(r.median)}`
-    : `Half of the main road network is within ${fmtH(r.median)} of ${name}`;
-  const branchTxt = nb <= 1 ? "" : `. Colours split the roads into ${nb} clusters: the ${nb - 1} biggest branches and the roads around ${name}`;
-  $("dek").textContent = `Hours of driving on motorways, trunk and primary roads and ferries. Line width is the ${people ? "people" : "road length"} whose fastest route to ${name} runs along each road${branchTxt}. ${people ? "95% of everyone" : "95% of the network"} is within ${fmtH(r.p95)}.`;
+  if (state.mode === "single") {
+    const name = state.dest.name, nb = state.style === "ink" ? 0 : state.nBranches;
+    const by = state.ferries ? "drive" : "drive, without a ferry,";
+    $("headline").textContent = !r.median
+      ? `Most people on this map can't reach ${name} without a ferry`
+      : people
+        ? `Half the people on this map can ${by} to ${name} in under ${fmtH(r.median)}`
+        : `Half of the main road network is within ${fmtH(r.median)} of ${name}${state.ferries ? "" : " by road alone"}`;
+    const branchTxt = nb <= 1 ? "" : `. Colours split the roads into ${nb} clusters: the ${nb - 1} biggest branches and the roads around ${name}`;
+    const p95Txt = r.p95 ? ` ${people ? "95% of everyone" : "95% of the network"} is within ${fmtH(r.p95)}.` : "";
+    const lostPct = (100 * r.unreach) / r.total;
+    const lostTxt = !state.ferries && lostPct >= 0.05 ? ` Without ferries, ${lostPct < 1 ? lostPct.toFixed(1) : Math.round(lostPct)}% of ${people ? "everyone" : "the network"} is cut off (grey).` : "";
+    $("dek").textContent = `Hours of driving on motorways, trunk and primary roads${state.ferries ? " and ferries" : ""}. Line width is the ${people ? "people" : "road length"} whose fastest route to ${name} runs along each road${branchTxt}.${p95Txt}${lostTxt}`;
+  } else {
+    let best = 0; r.srcTotal.forEach((v, i) => { if (v > r.srcTotal[best]) best = i; });
+    const who = { capitals: "any other capital", largest: `any other of the ${r.meta.length} largest cities`, mine: "any other city you picked" }[state.preset];
+    const amount = people ? fmtPeople(r.srcTotal[best]) : fmtKm(r.srcTotal[best]);
+    $("headline").textContent = r.meta.length > 1
+      ? `${r.meta[best].name} has the biggest pull: ${amount} reach it faster than ${who}`
+      : `Everything drains to ${r.meta[0].name}`;
+    const lostPct = (100 * r.unreach) / r.total;
+    $("dek").textContent = `Every junction drains to the city it reaches fastest by ${state.ferries ? "car and ferry" : "road alone"}. Colours separate neighbouring basins; line width is the ${people ? "people" : "road length"} each road carries.${!state.ferries && lostPct >= 0.05 ? ` Grey roads can't reach any of these cities without a ferry.` : ""}`;
+  }
 }
 
 // overlay: city labels
@@ -456,6 +581,43 @@ function refreshOverlay() {
   drawOverlay(ctx, viewport, dpr);
 }
 
+// export
+let exportPending = false;
+function exportImage() { exportPending = true; deckgl.redraw("export"); }
+function composeExport(glCanvas) {
+  const C = styleColors();
+  const wrap = $("mapwrap"), mw = wrap.clientWidth, mh = wrap.clientHeight;
+  const S = 2, pad = 40, headH = 168, footH = 50;
+  const out = document.createElement("canvas");
+  out.width = (mw + pad * 2) * S; out.height = (mh + headH + footH + pad) * S;
+  const ctx = out.getContext("2d");
+  ctx.scale(S, S);
+  ctx.fillStyle = C.card; ctx.fillRect(0, 0, mw + pad * 2, mh + headH + footH + pad);
+  ctx.fillStyle = C.ink; ctx.font = "800 28px Gabarito, sans-serif";
+  wrapText(ctx, $("headline").textContent, pad, pad + 24, mw, 32, 2);
+  ctx.fillStyle = C.ink2; ctx.font = "400 15px Gabarito, sans-serif";
+  wrapText(ctx, $("dek").textContent, pad, pad + 92, mw, 20, 3);
+  ctx.drawImage(glCanvas, pad, headH + pad / 2, mw, mh);
+  const ov = document.createElement("canvas"); ov.width = mw * S; ov.height = mh * S;
+  drawOverlay(ov.getContext("2d"), viewport, S, true);
+  ctx.drawImage(ov, pad, headH + pad / 2, mw, mh);
+  ctx.font = "400 12px Gabarito, sans-serif"; ctx.fillStyle = C.muted;
+  ctx.fillText("Source: OpenStreetMap contributors via Overture Maps (ODbL), GHSL 2025. EU, UK, EFTA and Western Balkans.", pad, headH + pad / 2 + mh + 30);
+  ctx.font = "600 12px Gabarito, sans-serif"; ctx.fillStyle = C.ink2; ctx.textAlign = "right";
+  ctx.fillText("Map: Josep Ferrer", pad + mw, headH + pad / 2 + mh + 30);
+  $("export-img").src = out.toDataURL("image/png");
+  $("modal").hidden = false;
+}
+function wrapText(ctx, text, x, y, maxW, lh, maxLines) {
+  const words = text.split(" "); let line = "", n = 0;
+  for (const w of words) {
+    const t = line ? line + " " + w : w;
+    if (ctx.measureText(t).width > maxW && line) { ctx.fillText(line, x, y + n * lh); line = w; if (++n >= maxLines) return; }
+    else line = t;
+  }
+  if (line && n < maxLines) ctx.fillText(line, x, y + n * lh);
+}
+
 // interaction
 function nearestNode(x, y) {
   let best = -1, bd = Infinity; const { nx, ny, NN } = G;
@@ -470,13 +632,49 @@ function nearestCity(x, y, maxKm = 15) {
 function onMapClick(info) {
   if (!info.coordinate || !G) return;
   const [x, y] = info.coordinate;
-  const city = nearestCity(x, y);
-  state.dest = city ? city : { name: "this point", n: nearestNode(x, y), x, y };
-  $("city").value = city ? city.label : "";
+  if (state.mode === "single") {
+    const city = nearestCity(x, y);
+    const n = nearestNode(x, y);
+    state.dest = city ? city : { name: "this point", n, x, y };
+    $("city").value = city ? city.name : "";
+  } else {
+    if (state.preset !== "mine") setPreset("mine", false);
+    const px = 12 / Math.pow(2, viewport.zoom);
+    const hit = state.picks.findIndex((p) => (G.nx[p.n] - x) ** 2 + (G.ny[p.n] - y) ** 2 < (px * 1.5) ** 2);
+    if (hit >= 0) state.picks.splice(hit, 1);
+    else { const city = nearestCity(x, y); state.picks.push(city ? city : { name: "Point", n: nearestNode(x, y), x, y }); }
+    renderPicks();
+  }
   render();
 }
 
 function pressed(groupIds, active) { groupIds.forEach((id) => $(id).setAttribute("aria-pressed", String(id === active))); }
+function setMode(m) {
+  state.mode = m; pressed(["mode-single", "mode-compete"], m === "single" ? "mode-single" : "mode-compete");
+  $("single-controls").hidden = m !== "single"; $("compete-controls").hidden = m === "single"; $("branch-group").hidden = m !== "single";
+  render();
+}
+function renderPicks() {
+  const box = $("picks");
+  box.innerHTML = "";
+  state.picks.forEach((c, i) => {
+    const b = document.createElement("button");
+    b.className = "chip"; b.type = "button"; b.setAttribute("aria-label", `Remove ${c.name}`);
+    b.innerHTML = `${c.name.replace(/</g, "&lt;")} <span aria-hidden="true">×</span>`;
+    b.onclick = () => { state.picks.splice(i, 1); renderPicks(); render(); };
+    box.appendChild(b);
+  });
+  $("clear-picks").hidden = state.picks.length === 0;
+}
+
+function setPreset(p, rerender = true) {
+  state.preset = p; pressed(["p-largest", "p-capitals", "p-mine"], "p-" + p);
+  $("count-group").hidden = p !== "largest";
+  $("picks-group").hidden = p !== "mine";
+  if (p === "mine" && !state.picksTouched) { state.picks = META.cities.filter((c) => ["Barcelona", "Rotterdam", "Munich", "Milan", "Lyon"].includes(c.name)); state.picksTouched = true; }
+  renderPicks();
+  if (rerender) render();
+}
 function setStyle(s) {
   state.style = s; pressed(["s-oat", "s-night", "s-ink"], "s-" + s);
   if (s === "oat") document.documentElement.removeAttribute("data-style"); else document.documentElement.setAttribute("data-style", s);
@@ -484,18 +682,26 @@ function setStyle(s) {
 }
 function syncHash() {
   let h = "";
-  if (state.dest && state.dest.slug) h = state.dest.slug;
+  if (state.mode === "single" && state.dest && state.dest.slug) h = state.dest.slug;
+  else if (state.mode === "compete" && state.preset === "largest") h = "largest-" + state.count;
+  else if (state.mode === "compete" && state.preset === "capitals") h = "capitals";
   try { history.replaceState(null, "", h ? "#" + h : location.pathname + location.search); } catch (e) { /* hash sync is a convenience */ }
 }
 function fromHash() {
   const h = location.hash.replace("#", "");
   if (!h) return false;
+  if (h === "capitals") { state.mode = "compete"; state.preset = "capitals"; return true; }
+  const lm = h.match(/^largest-(\d+)$/);
+  if (lm) { state.mode = "compete"; state.preset = "largest"; state.count = Math.max(2, Math.min(150, +lm[1])); return true; }
   const c = META.cities.find((c) => c.slug === h);
-  if (c) { state.dest = c; return true; }
+  if (c) { state.mode = "single"; state.dest = c; return true; }
   return false;
 }
 
 function bind() {
+  $("mode-single").onclick = () => setMode("single");
+  $("mode-compete").onclick = () => setMode("compete");
+  ["largest", "capitals", "mine"].forEach((p) => ($("p-" + p).onclick = () => setPreset(p)));
   $("w-people").onclick = () => { state.weight = "people"; pressed(["w-people", "w-roads"], "w-people"); render(); };
   $("w-roads").onclick = () => { state.weight = "roads"; pressed(["w-people", "w-roads"], "w-roads"); render(); };
   let pending = null;
@@ -508,13 +714,28 @@ function bind() {
     num.addEventListener("change", () => { const v = Math.min(hi, Math.max(lo, Math.round(+num.value) || lo)); num.value = v; range.value = v; apply(v); later(); });
   };
   link("branches", "branches-num", (v) => { state.nBranches = v; });
+  link("count", "count-num", (v) => { state.count = v; if (state.preset !== "largest") setPreset("largest", false); });
+  $("pick").addEventListener("change", (e) => {
+    const v = e.target.value.trim().toLowerCase();
+    const c = META.cities.find((c) => c.label.toLowerCase() === v) || META.cities.find((c) => c.name.toLowerCase() === v);
+    if (!c) return;
+    e.target.value = "";
+    if (!state.picks.some((p) => p.n === c.n)) state.picks.push(c);
+    renderPicks(); render();
+  });
+  $("clear-picks").onclick = () => { state.picks = []; renderPicks(); render(); };
+  $("f-on").onclick = () => { state.ferries = true; pressed(["f-on", "f-off"], "f-on"); render(); };
+  $("f-off").onclick = () => { state.ferries = false; pressed(["f-on", "f-off"], "f-off"); render(); };
   ["oat", "night", "ink"].forEach((s) => ($("s-" + s).onclick = () => setStyle(s)));
+  $("export").onclick = exportImage;
+  $("close-modal").onclick = () => ($("modal").hidden = true);
+  $("modal").onclick = (e) => { if (e.target === $("modal")) $("modal").hidden = true; };
   $("city").addEventListener("change", (e) => {
     const v = e.target.value.trim().toLowerCase();
     const c = META.cities.find((c) => c.label.toLowerCase() === v) || META.cities.find((c) => c.name.toLowerCase() === v);
     if (c) { state.dest = c; render(); }
   });
-  window.addEventListener("hashchange", () => { if (fromHash()) { $("city").value = state.dest.label; render(); } });
+  window.addEventListener("hashchange", () => { if (fromHash()) { setMode(state.mode); if (state.mode === "compete") setPreset(state.preset); } });
 }
 
 // boot
@@ -553,9 +774,12 @@ async function boot() {
     onAfterRender: () => {
       viewport = deckgl.getViewports()[0];
       refreshOverlay();
+      if (exportPending) { exportPending = false; composeExport(deckgl.getCanvas ? deckgl.getCanvas() : deckgl.canvas); }
     },
   });
   bind();
+  if (state.mode === "compete") { pressed(["mode-single", "mode-compete"], "mode-compete"); $("single-controls").hidden = true; $("compete-controls").hidden = false; $("branch-group").hidden = true; pressed(["p-largest", "p-capitals", "p-mine"], "p-" + state.preset); }
+  $("count").value = state.count; $("count-num").value = state.count; $("count-group").hidden = state.preset !== "largest"; $("picks-group").hidden = state.preset !== "mine";
   if (state.dest) $("city").value = state.dest.label || "";
   render();
   $("loading").hidden = true;

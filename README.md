@@ -2,14 +2,19 @@
 
 An interactive map of the fastest driving routes to any city across the EU, the UK, EFTA and the Western Balkans. Pick a destination and every main road in the network routes to it: line width shows how many people use each road on their way there, and colours split the network into clusters.
 
+**Live map: [all-roads-lead-to.databites.tech](https://all-roads-lead-to.databites.tech)**
+
 ![Routes to Madrid](docs/madrid.png)
 
 ## What you can do
 
-- **Pick a destination.** Type a city or click anywhere on the map. Every junction routes there along its fastest path.
-- **Clusters.** Up to 6 colours show the big road systems feeding the destination, plus the city's home roads. Drag the slider or type the number.
+- **One destination.** Type a city or click anywhere on the map. Every junction routes there along its fastest path, and up to 6 coloured clusters show the big road systems feeding it, plus the city's home roads.
+- **Road basins.** Several cities compete: each junction drains to whichever city it reaches first. Use the 50 largest cities (or any number from 2 to 150), the capitals, or your own picks.
+- **Ferries or roads only.** Switch ferries off and the islands that need a boat (Ireland, Sicily, Sardinia, Corsica, the Balearics, Malta, Iceland) turn grey. The Channel Tunnel stays, since it is a train.
 - **People or road length.** Line width counts either the people whose route passes along each road, or the kilometres of road that drain into it.
-- **Three poster styles:** Oat, Night and Ink.
+- **Three poster styles** (Oat, Night, Ink) and a PNG export.
+
+![Road basins of the 50 largest cities, Night style](docs/basins-night.png)
 
 ## Run it
 
@@ -19,6 +24,17 @@ The page loads its data with `fetch`, so open it through a local web server rath
 python -m http.server 8000
 # then open http://localhost:8000
 ```
+
+## Deploy
+
+The live map runs on [Cloudflare Pages](https://pages.cloudflare.com), connected to this repository, so every push to `main` deploys. There is no build step:
+
+- Framework preset: None
+- Build command: empty
+- Build output directory: `/`
+- Custom domain: `all-roads-lead-to.databites.tech`
+
+`_headers` tells Cloudflare to cache the map data for a day, since it only changes when the pipeline is rebuilt. Any other static host works too.
 
 ## How it works
 
@@ -30,7 +46,7 @@ python -m http.server 8000
 - Bridges short gaps left by the missing minor roads with straight links at 40 km/h, links ferry terminals to the nearest road, drops cruise-like ferry loops, and keeps the largest connected network.
 - Removes short dead ends and merges chains of road pieces into single links (661k junctions, 1.0M links).
 - Gives every road the people who live closest to it, from the GHSL 2025 population grid (538 million people in total).
-- Packs everything into `data/graph.bin.gz` (6.5 MB), stored as byte-shuffled columns so gzip compresses them well.
+- Packs everything into `data/graph.bin.gz` (6.5 MB): node coordinates in the European LAEA projection, link times, lengths and people, and simplified geometry, stored as byte-shuffled columns so gzip compresses them well.
 
 **3. Page** (`index.html`). Decodes the graph and runs Dijkstra in the browser (about 0.25 s for one destination). It then adds up people along the route tree to get line widths, and builds the clusters: it keeps splitting the biggest branch at its next fork until there are enough balanced branches, colours each trunk like a river by its biggest tributary, and gives side roads the colour of the road they join. Drawing uses [deck.gl](https://deck.gl).
 
@@ -50,6 +66,7 @@ python pipeline/check.py       # drive times from Brussels as a sanity check
 
 ```
 index.html            the map (HTML, CSS and JS in one file)
+_headers              cache rules for Cloudflare Pages
 data/
   graph.bin.gz        routing graph (built)
   meta.json           cities and country outlines (built)
