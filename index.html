@@ -1,5 +1,15 @@
-<title>All Roads Lead To</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>All roads lead to…</title>
+<meta name="description" content="Pick a city and every main road from Lisbon to Helsinki routes to it, sized by how many people use each one. A databites.tech project by Josep Ferrer.">
+<meta property="og:title" content="All roads lead to…">
+<meta property="og:description" content="Pick a city and every main road from Lisbon to Helsinki routes to it, sized by how many people use each one.">
+<meta property="og:image" content="https://all-roads-lead-to.databites.tech/docs/madrid.png">
+<meta property="og:url" content="https://all-roads-lead-to.databites.tech/">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gabarito:wght@400..900&display=swap">
 <style>
@@ -31,15 +41,18 @@
   --sea: #FFFFFF; --land: #FFFFFF; --land-out: #FFFFFF; --coast: #C9C4BA;
 }
 [hidden] { display: none !important; }
-html, body { height: 100%; }
+html, body { height: 100%; margin: 0; }
 body {
   background: var(--page); color: var(--ink); font-family: var(--font); font-size: 15px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 0; box-sizing: border-box; display: flex; flex-direction: column;
 }
-.masthead { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-block: 14px 10px; }
+.masthead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; padding-block: 14px 10px; }
 .masthead h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
-.masthead .by { font-size: 13px; font-weight: 600; color: var(--ink2); white-space: nowrap; }
+.masthead .by { font-size: 13px; font-weight: 600; color: var(--ink2); }
+.masthead .by a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--context); text-underline-offset: 3px; transition: text-decoration-color 150ms; }
+.masthead .by a:hover { text-decoration-color: var(--ink); }
+a:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 2px; }
 .app { flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; padding-bottom: 16px; }
 .rail { background: var(--card); border-radius: 18px; padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .mapcard { background: var(--card); border-radius: 18px; padding: 20px 20px 14px; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
@@ -101,10 +114,12 @@ details p { margin: 8px 0 0; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
+</head>
+<body>
 
 <header class="masthead">
   <h1>All roads lead to…</h1>
-  <span class="by">by Josep Ferrer</span>
+  <span class="by">A <a href="https://databites.tech" target="_blank" rel="noopener">databites.tech</a> project, made with ❤️ by <a href="https://www.linkedin.com/in/iamjosepferrer/" target="_blank" rel="noopener">Josep Ferrer</a></span>
 </header>
 
 <main class="app">
@@ -604,7 +619,7 @@ function composeExport(glCanvas) {
   ctx.font = "400 12px Gabarito, sans-serif"; ctx.fillStyle = C.muted;
   ctx.fillText("Source: OpenStreetMap contributors via Overture Maps (ODbL), GHSL 2025. EU, UK, EFTA and Western Balkans.", pad, headH + pad / 2 + mh + 30);
   ctx.font = "600 12px Gabarito, sans-serif"; ctx.fillStyle = C.ink2; ctx.textAlign = "right";
-  ctx.fillText("Map: Josep Ferrer", pad + mw, headH + pad / 2 + mh + 30);
+  ctx.fillText("Map: Josep Ferrer, databites.tech", pad + mw, headH + pad / 2 + mh + 30);
   $("export-img").src = out.toDataURL("image/png");
   $("modal").hidden = false;
 }
@@ -787,3 +802,5 @@ async function boot() {
 boot();
 })();
 </script>
+</body>
+</html>
